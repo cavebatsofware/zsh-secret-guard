@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Grant DeFayette
 # =============================================================================
-# zsg_secrets.pl — Secret detection and redaction for zsh_secret_guard
+# zsg_secrets.pl - Secret detection and redaction for zsh_secret_guard
 #
 # MODES (first argument):
 #   check   <cmd>     exit 0 if secret found, exit 1 if clean
@@ -10,13 +10,12 @@
 #   scrub   <file>    filter a history file, printing clean lines to stdout
 #   audit   <file>    print matched (redacted) lines with line numbers to stdout
 # =============================================================================
-
 use strict;
 use warnings;
 use 5.010;
 
 # ---------------------------------------------------------------------------
-# Patterns — each is a compiled qr// with an inline comment describing it.
+# Patterns - each is a compiled qr// with an inline comment describing it.
 # All matched case-insensitively via the /i flag on each pattern.
 # ---------------------------------------------------------------------------
 
@@ -108,7 +107,7 @@ my @PATTERNS = (
 );
 
 # ---------------------------------------------------------------------------
-# Redaction substitution — applied with s/// to mask secret values.
+# Redaction substitution - applied with s/// to mask secret values.
 # Runs multiple passes so overlapping patterns are all caught.
 # ---------------------------------------------------------------------------
 
@@ -190,7 +189,13 @@ if ($mode eq 'check') {
     while (my $line = <$fh>) {
         chomp $line;
         my $cmd = strip_hist_prefix($line);
-        print "$line\n" unless is_secret($cmd);
+        if (is_secret($cmd)) {
+            # Preserve any zsh extended history prefix, redact the command part
+            my ($prefix) = $line =~ /^(: \d+:\d+;)/;
+            print(($prefix // '') . redact($cmd) . "\n");
+        } else {
+            print "$line\n";
+        }
     }
     close($fh);
 

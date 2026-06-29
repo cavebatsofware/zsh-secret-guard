@@ -12,12 +12,13 @@
 #        source ~/.zsh_secret_guard/zsh_secret_guard.zsh
 #
 # USAGE:
-#   Automatic : secrets are silently blocked from history as you type.
-#   history_audit  : preview what would be removed from ~/.zsh_history
-#   history_scrub  : remove matched lines from ~/.zsh_history (backs up first)
+#   Automatic : commands containing secrets are saved to history with the
+#               secret value replaced by <REDACTED>.
+#   history_audit  : preview what would be redacted in ~/.zsh_history
+#   history_scrub  : redact matched lines in ~/.zsh_history (backs up first)
 #   zsg_status     : show current configuration
 # =============================================================================
- 
+
 # ---------------------------------------------------------------------------
 # Locate the Perl helper relative to this script
 # ---------------------------------------------------------------------------
@@ -32,7 +33,7 @@ if [[ ! -x "$_ZSG_PERL" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Configuration — override before sourcing if needed
+# Configuration - override before sourcing if needed
 # ---------------------------------------------------------------------------
 
 : ${ZSH_SECRET_GUARD_WARN:=1}
@@ -49,15 +50,18 @@ _zsg_zshaddhistory() {
     [[ ${#cmd} -lt 6 ]] && return 0
 
     if perl "$_ZSG_PERL" check "$cmd"; then
+        local redacted
+        redacted=$(perl "$_ZSG_PERL" redact "$cmd")
+
         if (( ZSH_SECRET_GUARD_WARN )); then
-            print -P "%F{yellow}[secret-guard]%f Potential secret detected — not saved to history." >&2
+            print -P "%F{yellow}[secret-guard]%f Potential secret detected. Saving redacted command to history." >&2
         fi
         if (( ZSH_SECRET_GUARD_LOG )); then
-            local redacted
-            redacted=$(perl "$_ZSG_PERL" redact "$cmd")
-            echo "[$(date '+%Y-%m-%d %T')] BLOCKED: $redacted" >> "$ZSH_SECRET_GUARD_LOG_FILE"
+            echo "[$(date '+%Y-%m-%d %T')] REDACTED: $redacted" >> "$ZSH_SECRET_GUARD_LOG_FILE"
         fi
-        return 1   # suppress from history
+
+        print -s -- "$redacted"   # write redacted form into history
+        return 1                  # suppress the original
     fi
 
     return 0
@@ -67,7 +71,7 @@ autoload -Uz add-zsh-hook
 add-zsh-hook zshaddhistory _zsg_zshaddhistory
 
 # ---------------------------------------------------------------------------
-# history_audit — preview secret-matching lines in existing history
+# history_audit - preview how secret-matching lines would be redacted
 # ---------------------------------------------------------------------------
 
 history_audit() {
@@ -78,15 +82,15 @@ history_audit() {
     fi
 
     echo "=== Secret Guard Audit: $histfile ==="
-    echo "Lines that WOULD be removed:"
+    echo "Lines that WOULD be redacted:"
     echo ""
     perl "$_ZSG_PERL" audit "$histfile"
     echo ""
-    echo "Run 'history_scrub' to remove them."
+    echo "Run 'history_scrub' to redact them."
 }
 
 # ---------------------------------------------------------------------------
-# history_scrub — remove secret-matching lines from history
+# history_scrub - redact secret-matching lines in history in place
 # ---------------------------------------------------------------------------
 
 history_scrub() {
@@ -105,15 +109,15 @@ history_scrub() {
 
     perl "$_ZSG_PERL" scrub "$histfile" > "$tmpfile"
 
-    local before after removed
-    before=$(wc -l < "$histfile")
-    after=$(wc -l < "$tmpfile")
-    removed=$(( before - after ))
+    local redacted
+    redacted=$(diff <(wc -l < "$histfile") <(grep -c '<REDACTED>' "$tmpfile" 2>/dev/null || echo 0) 2>/dev/null || true)
 
     mv "$tmpfile" "$histfile"
     fc -p "$histfile" 2>/dev/null   # reload zsh's in-memory history
 
-    echo "Done. Removed $removed entr$(( removed == 1 ? 'y' : 'ies' )), $after remaining."
+    local count
+    count=$(grep -c '<REDACTED>' "$histfile" 2>/dev/null || echo 0)
+    echo "Done. $count line(s) redacted."
     echo "To undo: cp \"$backup\" \"$histfile\""
 }
 

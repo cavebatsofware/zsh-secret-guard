@@ -4,15 +4,14 @@ Prevents secrets from entering your zsh history, and cleans them out if they do.
 
 ## How it works
 
-A `zshaddhistory` hook intercepts every command before it is written to `~/.zsh_history`. If the command matches a known secret pattern, it is silently dropped — the command still executes, it just never touches history. All pattern matching and redaction is handled by a Perl helper (`zsg_secrets.pl`) for clean, readable, compiled regex.
+A `zshaddhistory` hook intercepts every command before it is written to `~/.zsh_history`. If the command matches a known secret pattern, the secret value is replaced with `<REDACTED>` and that sanitized form is saved to history instead. The command still executes, your history retains a record of what you ran, and the secret never touches disk.
 
 ## Installation
-This installs the extension hook and helper in the users local ~/.config/zsh-secret-guard folder.
 
 ```zsh
 git clone https://github.com/gdefayette/zsh-secret-guard.git
 cd zsh-secret-guard
-chmod +x local-install.zsh
+chmod +x install.zsh
 ./install.zsh
 source ~/.zshrc
 ```
@@ -43,8 +42,8 @@ zsg_status
 ## Commands
 
 ```zsh
-history_audit        # preview secret-matching lines in existing history
-history_scrub        # remove them (backs up ~/.zsh_history first)
+history_audit        # preview how secret-matching lines would be redacted
+history_scrub        # redact them in place (backs up ~/.zsh_history first)
 zsg_status           # show configuration
 ```
 

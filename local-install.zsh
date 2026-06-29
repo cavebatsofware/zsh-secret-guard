@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Grant DeFayette
 # =============================================================================
-# install.zsh — installer for zsh-secret-guard
+# install.zsh - installer for zsh-secret-guard
 # Run from the directory containing zsh_secret_guard.zsh and zsg_secrets.pl
 # =============================================================================
 
@@ -36,7 +36,7 @@ for f in zsh_secret_guard.zsh zsg_secrets.pl; do
 done
 
 if ! command -v perl &>/dev/null; then
-    print_error "perl not found on PATH — required for secret detection."
+    print_error "perl not found on PATH, required for secret detection."
     exit 1
 fi
 
@@ -64,11 +64,11 @@ print_success "Copied files and set permissions"
 # ---------------------------------------------------------------------------
 
 if [[ -f "${ZSHRC}" ]] && grep -qF "${SOURCE_LINE}" "${ZSHRC}"; then
-    print_warn ".zshrc already contains the source line — skipping"
+    print_warn ".zshrc already contains the source line, skipping"
 else
     [[ -f "${ZSHRC}" ]] || touch "${ZSHRC}"
     echo "" >> "${ZSHRC}"
-    echo "# zsh-secret-guard — prevents secrets from entering history" >> "${ZSHRC}"
+    echo "# zsh-secret-guard prevents secrets from entering history" >> "${ZSHRC}"
     echo "${SOURCE_LINE}" >> "${ZSHRC}"
     print_success "Added source line to ${ZSHRC}"
 fi
