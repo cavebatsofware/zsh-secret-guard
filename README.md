@@ -1,4 +1,4 @@
-# zsh-secret-guard
+# [zsh-secret-guard](https://social.cavebatsoftware.com/articles/c645bbbe-0a92-45a0-b220-328d984ce414)
 
 Prevents secrets from entering your zsh history, and cleans them out if they do.
 
